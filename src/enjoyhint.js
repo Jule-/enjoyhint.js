@@ -1,387 +1,363 @@
-export const EnjoyHint = function EnjoyHint(_options) {
+import $ from 'jquery';
 
-  var $event_element;
-  var that = this;
-
-  var defaults = {
-      onStart: function onStart() {},
-      onEnd: function onEnd() {},
-      onSkip: function onSkip() {},
-      onNext: function onNext() {},
+export default class EnjoyHint {
+  constructor(_options) {
+    const defaults = {
+      onStart() { },
+      onEnd() { },
+      onSkip() { },
+      onNext() { },
 
       container: 'body',
 
       animation_time: 800,
-      backdrop_color: 'rgba(0,0,0,0.6)'
-  };
+      backdrop_color: 'rgba(0,0,0,0.6)',
+    };
 
-  var options = $.extend(defaults, _options);
-  var data = [];
-  var current_step = 0;
+    this.options = $.extend(defaults, _options);
 
-  var $body = $(options.container);
+    this.data = [];
+    this.currentStep = 0;
 
-  /********************* PRIVATE METHODS ***************************************/
+    this.$eventElement = null;
+    this.$body = $(this.options.container);
 
-  var init = function init() {
+    this.init();
+  }
 
-      if ($('.enjoyhint')) {
-          $('.enjoyhint').remove();
+  /** ******************* PRIVATE METHODS ************************************** */
+
+  init() {
+    if ($('.enjoyhint')) {
+      $('.enjoyhint').remove();
+    }
+
+    this.$body.enjoyhint({
+      onNextClick: () => {
+        this.nextStep();
+      },
+
+      onSkipClick: () => {
+        this.options.onSkip();
+        this.skipAll();
+      },
+
+      animation_time: this.options.animation_time,
+      backdrop_color: this.options.backdrop_color,
+    });
+
+
+    $(window).on('resize.enjoy_hint_permanent', () => {
+      if (this.$eventElement[0]) {
+        this.$body.enjoyhint('redo_events_near_rect', this.$eventElement[0].getBoundingClientRect());
       }
+    });
+  }
 
-      $body.enjoyhint({
-          onNextClick: function onNextClick() {
-              nextStep();
-          },
+  static lockTouch(e) {
+    e.preventDefault();
+  }
 
-          onSkipClick: function onSkipClick() {
-              options.onSkip();
-              skipAll();
-          },
+  destroyEnjoy() {
+    this.options.onEnd();
+    this.$body.enjoyhint('clear');
+    this.$body.enjoyhint('hide');
+    this.$body.css({ overflow: 'auto' });
+    $(document).off('touchmove', EnjoyHint.lockTouch);
+  }
 
-          animation_time: options.animation_time,
-          backdrop_color: options.backdrop_color
-      });
-  };
+  clear() {
+    const $nextBtn = $('.enjoyhint_next_btn');
+    const $skipBtn = $('.enjoyhint_skip_btn');
 
-  var lockTouch = function lockTouch(e) {
-      e.preventDefault();
-  };
+    $nextBtn.removeClass(this.nextUserClass);
+    $nextBtn.text('Next');
+    $skipBtn.removeClass(this.skipUserClass);
+    $skipBtn.text('Skip');
+  }
 
-  var destroyEnjoy = function destroyEnjoy() {
-      options.onEnd();
-      $body.enjoyhint('clear');
-      $body.enjoyhint('hide');
-      $body.css({ 'overflow': 'auto' });
-      $(document).off("touchmove", lockTouch);
-  };
+  stepAction() {
+    if (!(this.data && this.data[this.currentStep])) {
+      this.destroyEnjoy();
+      return;
+    }
 
-  that.clear = function () {
-      var $nextBtn = $('.enjoyhint_next_btn');
-      var $skipBtn = $('.enjoyhint_skip_btn');
+    this.options.onNext();
 
-      $nextBtn.removeClass(that.nextUserClass);
-      $nextBtn.text("Next");
-      $skipBtn.removeClass(that.skipUserClass);
-      $skipBtn.text("Skip");
-  };
+    const $enjoyhint = $('.enjoyhint');
 
-  var stepAction = function stepAction() {
-      if (!(data && data[current_step])) {
-          destroyEnjoy();
-          return;
-      }
+    $enjoyhint.removeClass(`enjoyhint-step-${this.currentStep}`);
+    $enjoyhint.removeClass(`enjoyhint-step-${this.currentStep + 1}`);
+    $enjoyhint.addClass(`enjoyhint-step-${this.currentStep + 1}`);
 
-      options.onNext();
+    const stepData = this.data[this.currentStep];
 
-      var $enjoyhint = $('.enjoyhint');
+    if (stepData.onBeforeStart && typeof stepData.onBeforeStart === 'function') {
+      stepData.onBeforeStart();
+    }
 
-      $enjoyhint.removeClass("enjoyhint-step-" + current_step);
-      $enjoyhint.removeClass("enjoyhint-step-" + (current_step + 1));
-      $enjoyhint.addClass("enjoyhint-step-" + (current_step + 1));
+    const timeout = stepData.timeout || 0;
 
-      var step_data = data[current_step];
+    setTimeout(() => {
+      if (!stepData.selector) {
+        Object.keys(stepData).forEach((prop) => {
+          if (prop.split(' ')[1]) {
+            let tempEvent = '';
+            [tempEvent, stepData.selector] = prop.split(' ');
 
-      if (step_data.onBeforeStart && typeof step_data.onBeforeStart === 'function') {
+            if (tempEvent === 'next' || tempEvent === 'auto' || tempEvent === 'custom') {
+              stepData.event_type = tempEvent;
+            } else {
+              stepData.event = tempEvent;
+            }
 
-          step_data.onBeforeStart();
-      }
-
-      var timeout = step_data.timeout || 0;
-
-      setTimeout(function () {
-          if (!step_data.selector) {
-              for (var prop in step_data) {
-                  if (step_data.hasOwnProperty(prop) && prop.split(" ")[1]) {
-                      step_data.selector = prop.split(" ")[1];
-                      var tempEvent = prop.split(" ")[0];
-
-                      if (tempEvent === 'next' || tempEvent === 'auto' || tempEvent === 'custom') {
-                          step_data.event_type = tempEvent;
-                      } else {
-                          step_data.event = tempEvent;
-                      }
-
-                      step_data.description = step_data[prop];
-                  }
-              }
+            stepData.description = stepData[prop];
           }
-
-          setTimeout(function () {
-              that.clear();
-          }, 250);
-
-          $body.scrollTo(step_data.selector, step_data.scrollAnimationSpeed || 250, { offset: -100 });
-
-          setTimeout(function () {
-              var $element = $(step_data.selector);
-              var event = makeEventName(step_data.event);
-
-              $body.enjoyhint('show');
-              $body.enjoyhint('hide_next');
-              $event_element = $element;
-
-              if (step_data.event_selector) {
-                  $event_element = $(step_data.event_selector);
-              }
-
-              if (!step_data.event_type && step_data.event == "key") {
-                  $element.keydown(function (event) {
-                      if (event.which == step_data.keyCode) {
-                          current_step++;
-                          stepAction();
-                      }
-                  });
-              }
-
-              if (step_data.showNext == true) {
-                  $body.enjoyhint('show_next');
-              }
-
-              if (step_data.showSkip == false) {
-                  $body.enjoyhint('hide_skip');
-              } else {
-                  $body.enjoyhint('show_skip');
-              }
-
-              if (step_data.showSkip == true) {}
-
-              if (step_data.nextButton) {
-                  var $nextBtn = $('.enjoyhint_next_btn');
-
-                  $nextBtn.addClass(step_data.nextButton.className || "");
-                  $nextBtn.text(step_data.nextButton.text || "Next");
-                  that.nextUserClass = step_data.nextButton.className;
-              }
-
-              if (step_data.skipButton) {
-                  var $skipBtn = $('.enjoyhint_skip_btn');
-
-                  $skipBtn.addClass(step_data.skipButton.className || "");
-                  $skipBtn.text(step_data.skipButton.text || "Skip");
-                  that.skipUserClass = step_data.skipButton.className;
-              }
-
-              if (step_data.event_type) {
-                  switch (step_data.event_type) {
-                      case 'auto':
-                          $element[step_data.event]();
-
-                          switch (step_data.event) {
-                              case 'click':
-                                  break;
-                          }
-
-                          current_step++;
-                          stepAction();
-
-                          return;
-                          break;
-
-                      case 'custom':
-                          on(step_data.event, function () {
-                              current_step++;
-                              off(step_data.event);
-                              stepAction();
-                          });
-                          break;
-
-                      case 'next':
-                          $body.enjoyhint('show_next');
-                          break;
-                  }
-              } else {
-                  $event_element.on(event, function (e) {
-                      if (step_data.keyCode && e.keyCode != step_data.keyCode) {
-                          return;
-                      }
-
-                      current_step++;
-                      $(this).off(event);
-
-                      stepAction(); // clicked
-                  });
-              }
-
-              var updateShapeData = function updateShapeData() {
-                  $element = $(step_data.selector);
-
-                  var rect = $element[0].getBoundingClientRect();
-                  var w = rect.width;
-                  var h = rect.height;
-                  var max_habarites = Math.max(w, h);
-                  var radius = step_data.radius || Math.round(max_habarites / 2) + 5;
-                  var offset = $element.offset();
-                  var shape_margin = step_data.margin !== undefined ? step_data.margin : 10;
-
-                  var coords = {
-                      x: offset.left + Math.round(w / 2),
-                      y: offset.top + Math.round(h / 2) - $(document).scrollTop()
-                  };
-
-                  var shape_data = {
-                      enjoyHintElementSelector: step_data.selector,
-                      center_x: coords.x,
-                      center_y: coords.y,
-                      text: step_data.description,
-                      top: step_data.top,
-                      bottom: step_data.bottom,
-                      left: step_data.left,
-                      right: step_data.right,
-                      margin: step_data.margin,
-                      scroll: step_data.scroll
-                  };
-
-                  if (step_data.shape && step_data.shape == 'circle') {
-
-                      shape_data.shape = 'circle';
-                      shape_data.radius = radius;
-                  } else {
-
-                      shape_data.radius = 0;
-                      shape_data.width = w + shape_margin;
-                      shape_data.height = h + shape_margin;
-                  }
-                  return shape_data;
-              };
-              var _shape_data = updateShapeData();
-
-              $body.enjoyhint('render_label_with_shape', _shape_data, that.stop, updateShapeData);
-
-              if (step_data.event == "next") {
-
-                  $body.enjoyhint('disable_element_events');
-              }
-          }, step_data.scrollAnimationSpeed + 20 || 270);
-      }, timeout);
-  };
-
-  var nextStep = function nextStep() {
-
-      current_step++;
-      stepAction();
-  };
-
-  var skipAll = function skipAll() {
-
-      var step_data = data[current_step];
-      var $element = $(step_data.selector);
-
-      off(step_data.event);
-      $element.off(makeEventName(step_data.event));
-      $element.off(makeEventName(step_data.event), true);
-
-      destroyEnjoy();
-  };
-
-  var makeEventName = function makeEventName(name, is_custom) {
-
-      return name + (is_custom ? 'custom' : '') + '.enjoy_hint';
-  };
-
-  var on = function on(event_name, callback) {
-
-      $body.on(makeEventName(event_name, true), callback);
-  };
-
-  var off = function off(event_name) {
-
-      $body.off(makeEventName(event_name, true));
-  };
-
-  /********************* PUBLIC METHODS ***************************************/
-
-  $(window).on('resize.enjoy_hint_permanent', function () {
-
-      if ($event_element[0]) {
-          $body.enjoyhint('redo_events_near_rect', $event_element[0].getBoundingClientRect());
+        });
       }
-  });
 
-  that.stop = function () {
+      setTimeout(() => {
+        this.clear();
+      }, 250);
 
-      skipAll();
-  };
+      this.$body.scrollTo(stepData.selector,
+        stepData.scrollAnimationSpeed || 250,
+        { offset: -100 });
 
-  that.reRunScript = function (cs) {
+      setTimeout(() => {
+        let $element = $(stepData.selector);
+        const eventName = EnjoyHint.makeEventName(stepData.event);
 
-      current_step = cs;
-      stepAction();
-  };
+        this.$body.enjoyhint('show');
+        this.$body.enjoyhint('hideNext');
+        this.$eventElement = $element;
 
-  that.runScript = function () {
-      $body.css({ 'overflow': 'hidden' });
-      $(document).on("touchmove", lockTouch);
+        if (stepData.event_selector) {
+          this.$eventElement = $(stepData.event_selector);
+        }
 
-      current_step = 0;
-      options.onStart();
-      stepAction();
-  };
+        if (!stepData.event_type && stepData.event === 'key') {
+          $element.keydown((event) => {
+            if (event.which === stepData.keyCode) {
+              this.currentStep += 1;
+              this.stepAction();
+            }
+          });
+        }
 
-  that.resumeScript = function () {
+        if (stepData.showNext === true) {
+          this.$body.enjoyhint('showNext');
+        }
 
-      stepAction();
-  };
+        if (stepData.showSkip === false) {
+          this.$body.enjoyhint('hideSkip');
+        } else {
+          this.$body.enjoyhint('showSkip');
+        }
 
-  that.setCurrentStep = function (cs) {
+        if (stepData.nextButton) {
+          const $nextBtn = $('.enjoyhint_next_btn');
 
-      current_step = cs;
-  };
+          $nextBtn.addClass(stepData.nextButton.className || '');
+          $nextBtn.text(stepData.nextButton.text || 'Next');
+          this.nextUserClass = stepData.nextButton.className;
+        }
 
-  that.getCurrentStep = function () {
+        if (stepData.skipButton) {
+          const $skipBtn = $('.enjoyhint_skip_btn');
 
-      return current_step;
-  };
+          $skipBtn.addClass(stepData.skipButton.className || '');
+          $skipBtn.text(stepData.skipButton.text || 'Skip');
+          this.skipUserClass = stepData.skipButton.className;
+        }
 
-  that.trigger = function (event_name) {
+        if (stepData.event_type) {
+          switch (stepData.event_type) {
+            case 'auto':
+              $element[stepData.event]();
 
-      switch (event_name) {
+              this.currentStep += 1;
+              this.stepAction();
 
-          case 'next':
+              return;
 
-              nextStep();
+            case 'custom':
+              this.on(stepData.event, () => {
+                this.currentStep += 1;
+                this.off(stepData.event);
+                this.stepAction();
+              });
               break;
 
-          case 'skip':
-
-              skipAll();
+            case 'next':
+              this.$body.enjoyhint('showNext');
               break;
 
-          // Trigger a custom event
-          default:
-              $body.trigger(makeEventName(event_name, true));
+            default:
               break;
-      }
-  };
+          }
+        } else {
+          this.$eventElement.on(eventName, (e) => {
+            if (stepData.keyCode && e.keyCode !== stepData.keyCode) {
+              return;
+            }
 
-  that.setScript = function (_data) {
+            this.currentStep += 1;
+            $(this).off(eventName);
 
-      if (_data) {
+            this.stepAction(); // clicked
+          });
+        }
 
-          data = _data;
-      }
-  };
+        const updateShapeData = () => {
+          $element = $(stepData.selector);
 
-  //support deprecated API methods
-  that.set = function (_data) {
+          const rect = $element[0].getBoundingClientRect();
+          const w = rect.width;
+          const h = rect.height;
+          const maxHabarites = Math.max(w, h);
+          const radius = stepData.radius || Math.round(maxHabarites / 2) + 5;
+          const offset = $element.offset();
+          const shapeMargin = (stepData.margin !== undefined) ? stepData.margin : 10;
 
-      that.setScript(_data);
-  };
+          const coords = {
+            x: offset.left + Math.round(w / 2),
+            y: offset.top + Math.round(h / 2) - $(document).scrollTop(),
+          };
 
-  that.setSteps = function (_data) {
+          const shapeData = {
+            enjoyHintElementSelector: stepData.selector,
+            centerX: coords.x,
+            centerY: coords.y,
+            text: stepData.description,
+            top: stepData.top,
+            bottom: stepData.bottom,
+            left: stepData.left,
+            right: stepData.right,
+            margin: stepData.margin,
+            scroll: stepData.scroll,
+          };
 
-      that.setScript(_data);
-  };
+          if (stepData.shape && stepData.shape === 'circle') {
+            shapeData.shape = 'circle';
+            shapeData.radius = radius;
+          } else {
+            shapeData.radius = 0;
+            shapeData.width = w + shapeMargin;
+            shapeData.height = h + shapeMargin;
+          }
+          return shapeData;
+        };
+        const updatedShapeData = updateShapeData();
 
-  that.run = function () {
+        this.$body.enjoyhint('renderLabelWithShape', updatedShapeData, this.stop, updateShapeData);
 
-      that.runScript();
-  };
+        if (stepData.event === 'next') {
+          this.$body.enjoyhint('disableElementEvents');
+        }
+      }, stepData.scrollAnimationSpeed + 20 || 270);
+    }, timeout);
+  }
 
-  that.resume = function () {
+  nextStep() {
+    this.currentStep += 1;
+    this.stepAction();
+  }
 
-      that.resumeScript();
-  };
+  skipAll() {
+    const stepData = this.data[this.currentStep];
+    const $element = $(stepData.selector);
 
-  init();
+    this.off(stepData.event);
+    $element.off(EnjoyHint.makeEventName(stepData.event));
+    $element.off(EnjoyHint.makeEventName(stepData.event), true);
+
+    this.destroyEnjoy();
+  }
+
+  static makeEventName(name, isCustom) {
+    return `${name + (isCustom ? 'custom' : '')}.enjoy_hint`;
+  }
+
+  on(eventName, callback) {
+    this.$body.on(EnjoyHint.makeEventName(eventName, true), callback);
+  }
+
+  off(eventName) {
+    this.$body.off(EnjoyHint.makeEventName(eventName, true));
+  }
+
+
+  /** ******************* PUBLIC METHODS ************************************** */
+
+
+  stop() {
+    this.skipAll();
+  }
+
+  reRunScript(cs) {
+    this.currentStep = cs;
+    this.stepAction();
+  }
+
+  runScript() {
+    this.$body.css({ overflow: 'hidden' });
+    $(document).on('touchmove', EnjoyHint.lockTouch);
+
+    this.currentStep = 0;
+    this.options.onStart();
+    this.stepAction();
+  }
+
+  resumeScript() {
+    this.stepAction();
+  }
+
+  setCurrentStep(cs) {
+    this.currentStep = cs;
+  }
+
+  getCurrentStep() {
+    return this.currentStep;
+  }
+
+  trigger(eventName) {
+    switch (eventName) {
+      case 'next':
+        this.nextStep();
+        break;
+
+      case 'skip':
+        this.skipAll();
+        break;
+
+      // Trigger a custom event
+      default:
+        this.$body.trigger(EnjoyHint.makeEventName(eventName, true));
+        break;
+    }
+  }
+
+  setScript(_data) {
+    if (_data) {
+      this.data = _data;
+    }
+  }
+
+  // support deprecated API methods
+  set(_data) {
+    this.setScript(_data);
+  }
+
+  setSteps(_data) {
+    this.setScript(_data);
+  }
+
+  run() {
+    this.runScript();
+  }
+
+  resume() {
+    this.resumeScript();
+  }
 }
