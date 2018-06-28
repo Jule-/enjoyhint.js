@@ -5,7 +5,7 @@
 
 EnjoyHint
 =========
-**EnjoyHint** is a web-tool that provides the simplest way to create interactive tutorials and hints for your site or web-application. It can also be used to highlight and sign application elements.  
+**EnjoyHint** is a web-tool that provides the simplest way to create interactive tutorials and hints for your site or web-application. It can also be used to highlight and sign application elements.
 
 EnjoyHint is free software distributed under the terms of MIT license.
 
@@ -44,7 +44,7 @@ var enjoyhint_instance = new EnjoyHint({});
 var enjoyhint_script_steps = [
   {
     'click .new_btn' : 'Click the "New" button to start creating your project'
-  }  
+  }
 ];
 
 //set script config
@@ -63,16 +63,17 @@ Highlight some button and after you click on it, highlight some panel:
 var enjoyhint_script_steps = [
   {
     'click .some_btn' : 'Click on this btn'
-  },  
+  },
   {
     'click .some_panel' : 'Click on this panel'
-  }  
+  }
 ];
 ```
 
 #### Properties of instance configuration
 * `container` - scrollable container (default `body`)
 * `animation_time` - time between scroll animation and arrow render (default ms `800`)
+* `backdrop_color` - backdrop mask color (default `rgba(0,0,0,0.6)`)
 
 ```javascript
 //initialize instance
@@ -99,14 +100,14 @@ var enjoyhint_instance = new EnjoyHint({
 * `"event selector" : "description"` - to describe a step you should set an event type, selecte element and add description for this element (hint)
 * `description
 * `keyCode` - the code of a button, which triggers the next EnjoyHint step upon a click. Defined by the “key” event. (“key #block” : “hello”).
-* `event_selector` - if you need to attach an event (that was set in "event" property) to other selector, you can use this one  
-* `timeout` - delay before the moment, when an element is highlighted   
+* `event_selector` - if you need to attach an event (that was set in "event" property) to other selector, you can use this one
+* `timeout` - delay before the moment, when an element is highlighted
 * `shape` - shape for highlighting (circle|rect)
 * `radius` -  if the shape of "circle" is specified, we can set the radius.
-* `margin` - margin for the highlight shape (for Ex.:10)  
-* `top` - top margin for the shape of "rect" type  
-* `right` - right margin for the shape of "rect" type  
-* `bottom` - bottom margin for the shape of "rect" type  
+* `margin` - margin for the highlight shape (for Ex.:10)
+* `top` - top margin for the shape of "rect" type
+* `right` - right margin for the shape of "rect" type
+* `bottom` - bottom margin for the shape of "rect" type
 * `left` - left margin for the shape of "rect" type
 * `scrollAnimationSpeed` - sets the auto scroll speed (ms).
 * `nextButton` - allows applying its classes and names for the button Nеxt.
@@ -160,7 +161,7 @@ enjoyhint_instance.set( [ {
 * `trigger( "next" | "skip" | custom_event_name )` - Trigger the relevant script action.
 
 #### Events
-**Step Events**:  
+**Step Events**:
 * `onBeforeStart` - fires before the step is started.
 ```javascript
 var enjoyhint_script_steps = [
