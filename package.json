@@ -23,13 +23,21 @@
   },
   "homepage": "https://github.com/darron1217/enjoyhint.js",
   "devDependencies": {
-    "grunt-contrib-concat": "^0.5.1",
-    "grunt-contrib-cssmin": "^0.11.0",
-    "grunt-contrib-jshint": "^0.11.2",
-    "grunt-contrib-uglify": "^0.9.1"
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "^1.7.0",
+    "eslint": "^4.19.1",
+    "eslint-config-airbnb-base": "^13.0.0",
+    "eslint-plugin-import": "^2.13.0",
+    "grunt": "^1.0.3",
+    "grunt-babel": "^7.0.0",
+    "grunt-contrib-clean": "^1.1.0",
+    "grunt-contrib-concat": "^1.0.1",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-contrib-cssmin": "^2.2.1",
+    "grunt-contrib-uglify": "^3.3.0",
+    "load-grunt-tasks": "^4.0.0"
   },
   "dependencies": {
-    "grunt": "^0.4.5",
     "jquery": "^3.3.1",
     "jquery.scrollto": "^2.1.2",
     "kinetic": "^5.2.0"

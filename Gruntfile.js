@@ -1,36 +1,36 @@
-module.exports = function(grunt){
+module.exports = function(grunt) {
+    require("load-grunt-tasks")(grunt);
+
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
-        concat:{
-            options: {
-                separator: ';'
-            },
-            dist:{
-                src:['src/*.js', 'node_modules/kinetic/kinetic.min.js', 'node_modules/jquery.scrollTo/jquery.scrollTo.min.js'],
-                dest: 'dist/enjoyhint.js'
-            },
-            all: {
-              src: ['node_modules/jquery/dist/jquery.min.js', 'dist/enjoyhint.js'],
-              dest: 'dist/all.js',
-            },
+        clean: {
+            folder: ["tmp/"]
         },
-        uglify: {
-            main: {
+        babel: {
+            options: {
+                sourceMap: false
+            },
+            dist: {
                 files: {
-                    'dist/enjoyhint.min.js': ['<%= concat.dist.dest %>'],
-                    'dist/all.min.js': ['<%= concat.all.dest %>']
+                    "tmp/enjoyhint.js": "src/enjoyhint.js",
+                    "tmp/jquery.enjoyhint.js": "src/jquery.enjoyhint.js"
                 }
             }
         },
-        jshint: {
-            files: ['Gruntfile.js', 'src/*.js'],
+        concat: {
             options: {
-                "eqnull": true,
-                "globals": {
-                    jQuery: true,
-                    console: true,
-                    module: true
-                }
+                separator: ';'
+            },
+            dist: {
+                src: ['tmp/*.js'],
+                dest: 'dist/enjoyhint.js'
+            }
+        },
+        copy: {
+            main: {
+                files: [
+                    { expand: true, flatten: true, src: ['tmp/*.map'], dest: 'dist/', filter: 'isFile' }
+                ]
             }
         },
         cssmin: {
@@ -42,11 +42,11 @@ module.exports = function(grunt){
         }
     });
 
-    grunt.loadNpmTasks('grunt-contrib-uglify');
-    grunt.loadNpmTasks('grunt-contrib-jshint');
+    // grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-cssmin');
+    grunt.loadNpmTasks('grunt-contrib-copy');
+    grunt.loadNpmTasks('grunt-contrib-clean');
 
-    grunt.registerTask("default", ["concat", "uglify", "cssmin"])
-
+    grunt.registerTask("default", ["babel", "concat", "copy", "cssmin", "clean"]);
 };
